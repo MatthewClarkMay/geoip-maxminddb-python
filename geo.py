@@ -6,6 +6,7 @@ AUTHOR: Matthew May - mcmay.web@gmail.com
 
 # Imports
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from sys import argv
 from textwrap import dedent
 import geoip2.database
 
@@ -140,6 +141,9 @@ def main():
         print(p)
     # if args.readme:
     #     readme()
+    if len(argv) <= 3:
+        ll = lat_lon(db, ip)
+        print(ll)
 
 
 if __name__ == '__main__':
