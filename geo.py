@@ -91,7 +91,6 @@ def menu():
     return args
 
 
-
 def read_and_respond(db, ip, query):
     reader = geoip2.database.Reader(db)
     try:
