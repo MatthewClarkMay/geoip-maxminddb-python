@@ -6,6 +6,7 @@ AUTHOR: Matthew May - mcmay.web@gmail.com
 
 # Imports
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from collections import OrderedDict
 from sys import argv, exit
 from textwrap import dedent
 import geoip2.database
@@ -48,6 +49,12 @@ def build_results_dict(args, db, ip):
         lon = read_and_respond(db, ip, str('response.location.longitude'))
         results['lat_lon'] = [lat, lon]
     return results
+
+
+def format_and_print_results(results):
+    ordered_results = OrderedDict(sorted(results.items()))
+    for key in ordered_results:
+        print('{}: {}'.format(key, results[key]))
 
 
 def menu():
@@ -124,8 +131,7 @@ def main():
     print('IP: ' + ip + '\n')
 
     results = build_results_dict(args, db, ip)
-
-    print(results)
+    format_and_print_results(results)
 
 
 if __name__ == '__main__':
