@@ -10,6 +10,7 @@ from collections import OrderedDict
 from sys import argv, exit
 from textwrap import dedent
 import geoip2.database
+# import maxminddb
 
 
 def build_results_dict(args, db, ip):
@@ -60,7 +61,7 @@ def format_and_print_results(results):
 def menu():
     # instantiate parser
     parser = ArgumentParser(
-            prog='geoLocate.py',
+            prog='geoip.py',
             usage='%(prog)s [DB] [IP] [OPTIONS]',
             formatter_class=RawDescriptionHelpFormatter,
             description=dedent('''\
@@ -99,22 +100,35 @@ def menu():
 
 
 def read_and_respond(db, ip, query):
-    reader = geoip2.database.Reader(db)
     try:
+        reader = geoip2.database.Reader(db)
         response = reader.city(ip)
         result = eval(query)
         reader.close()
         return result
-    except:
-        response = reader.country(ip)
-    try:
-        result = eval(query)
-        reader.close()
-        return result
-    except:
-        print('You did not provide a compatible database.\n')
+    except FileNotFoundError:
+        print('DB not found\n')
         print('SHUTTING DOWN')
         exit()
+        pass
+    except ValueError:
+        print('Invalid IP address\n')
+        print('SHUTTING DOWN')
+    except TypeError:
+        try:
+            reader = geoip2.database.Reader(db)
+            response = reader.country(ip)
+            result = eval(query)
+            reader.close()
+            return result
+        except ValueError:
+            print('Invalid IP address\n')
+            print('SHUTTING DOWN')
+            exit()
+        except TypeError:
+            print('You did not provide a compatible database.\n')
+            print('SHUTTING DOWN')
+            exit()
 
 
 def readme(): # print readme contents
@@ -127,7 +141,7 @@ def main():
     db = args.dbpath
     ip = args.address
 
-    print('\nDB PATH: ' + db)
+    print('\nDB: ' + db)
     print('IP: ' + ip + '\n')
 
     results = build_results_dict(args, db, ip)
