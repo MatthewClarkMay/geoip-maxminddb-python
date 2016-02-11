@@ -114,6 +114,7 @@ def read_and_respond(db, ip, query):
     except ValueError:
         print('Invalid IP address\n')
         print('SHUTTING DOWN')
+        exit()
     except TypeError:
         try:
             reader = geoip2.database.Reader(db)
