@@ -6,82 +6,60 @@ AUTHOR: Matthew May - mcmay.web@gmail.com
 
 # Imports
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from sys import argv
+from sys import argv, exit
 from textwrap import dedent
 import geoip2.database
 
 
-def city(db, ip): # return string("city")
-    reader = geoip2.database.Reader(db)
-    response = reader.city(ip) # REQUIRES MAXMIND CITY DB
-    reader.close()
-    return response.city.name
+def build_results_dict(args, db, ip):
+    results = {}
+    if args.city:
+        city = read_and_respond(db, ip, str('response.city.name'))
+        results['city'] = city
+    if args.country:
+        country = read_and_respond(db, ip, str('response.country.name'))
+        results['country'] = country
+    if args.country_code:
+        country_code = read_and_respond(db, ip, str('response.country.iso_code'))
+        results['country_code'] = country_code
+    # if args.domain: # REQUIRES PAID DB
+    #     domain = read_and_respond(db, ip, response.?.?)
+    #     results['domain'] = domain
+    # if args.isp: # REQUIRES PAID DB
+    #     isp = read_and_respond(db, ip, response.?.?)
+    #     results['isp'] = isp
+    if args.lat_lon:
+        lat = read_and_respond(db, ip, str('response.location.latitude'))
+        lon = read_and_respond(db, ip, str('response.location.longitude'))
+        results['lat_lon'] = [lat, lon]
+    if args.latitude:
+        latitude = read_and_respond(db, ip, str('response.location.latitude'))
+        results['latitude'] = latitude
+    if args.longitude:
+        longitude = read_and_respond(db, ip, str('response.location.longitude'))
+        results['longitude'] = longitude
+    if args.postal_code:
+        postal_code = read_and_respond(db, ip, str('response.postal.code'))
+        results['postal'] = postal_code
+    # if args.readme:
+    #     readme()
+    if len(argv) <= 3:
+        lat = read_and_respond(db, ip, str('response.location.latitude'))
+        lon = read_and_respond(db, ip, str('response.location.longitude'))
+        results['lat_lon'] = [lat, lon]
+    return results
 
 
-def country(db, ip): # return string("country")
-    reader = geoip2.database.Reader(db)
-    response = reader.country(ip) # REQUIRES MAXMIND COUNTRY DB
-    reader.close()
-    return response.country.name
-
-
-def country_code(db, ip): # return string("country_code")
-    reader = geoip2.database.Reader(db)
-    response = reader.country(ip) # REQUIRES MAXMIND COUNTRY DB
-    reader.close()
-    return response.country.iso_code
-
-
-def domain(db, ip): # return string("domain") REQUIRES PAID DB
-    pass
-
-
-def isp(db, ip): # return string("Internet Service Provider") REQUIRES PAID DB
-    pass
-
-
-def lat(db, ip): # return float(latitude)
-    reader = geoip2.database.Reader(db)
-    response = reader.city(ip) # REQUIRES MAXMIND CITY DB
-    reader.close()
-    return response.location.latitude
-
-
-def lat_lon(db, ip): # return [float(latitude), float(longitude)]
-    # REQUIRES MAXMIND CITY DB
-    latitude = lat(db, ip)
-    longitude = lon(db, ip)
-    return [latitude, longitude]
-
-
-def lon(db, ip): # return float(longitude)
-    reader = geoip2.database.Reader(db) # REQUIRES MAXMIND CITY DB
-    response = reader.city(ip)
-    reader.close()
-    return response.location.longitude
-
-
-def postal(db, ip): # return int(postal_code)
-    reader = geoip2.database.Reader(db) # REQUIRES MAXMIND CITY DB
-    response = reader.city(ip)
-    reader.close()
-    return response.postal.code
-
-
-def readme(): # print readme contents
-    pass
-
-
-def main():
+def menu():
     # instantiate parser
     parser = ArgumentParser(
             prog='geoLocate.py',
             usage='%(prog)s [DB] [IP] [OPTIONS]',
             formatter_class=RawDescriptionHelpFormatter,
             description=dedent('''\
-                    GeoIP Locator: Returns city, country, or latitude/longitude, depending on the option(s) passed.
+                    GeoIP Locator: Returns city, country, country code, postal code, or latitude/longitude, depending on the option(s) passed.
 
-                    Default output with no options passed: [latitude, longitude]'''))
+                    Default output with no optional arguments passed: [latitude, longitude]'''))
 
     # DB argument
     parser.add_argument('dbpath', metavar='db', type=str, help='Absolute path of MaxMind DB')
@@ -99,6 +77,8 @@ def main():
     # parser.add_argument('-i', action='store_true', dest='isp', help='Return IP Internet Service Provider')
     # latitude option
     parser.add_argument('-la', action='store_true', dest='latitude', help='Return IP latitude. REQUIRES MAXMIND CITY DB')
+    # lat_lon option
+    parser.add_argument('-lalo', action='store_true', dest='lat_lon', help='Return IP latitude and longitude. REQUIRES MAXMIND CITY DB')
     # longitude option
     parser.add_argument('-lo', action='store_true', dest='longitude', help='Return IP longitude. REQUIRES MAXMIND CITY DB')
     # postal code option
@@ -108,42 +88,45 @@ def main():
 
     # parse arguments/options
     args = parser.parse_args()
+    return args
 
+
+
+def read_and_respond(db, ip, query):
+    reader = geoip2.database.Reader(db)
+    try:
+        response = reader.city(ip)
+        result = eval(query)
+        reader.close()
+        return result
+    except:
+        response = reader.country(ip)
+    try:
+        result = eval(query)
+        reader.close()
+        return result
+    except:
+        print('You did not provide a compatible database.\n')
+        print('SHUTTING DOWN')
+        exit()
+
+
+def readme(): # print readme contents
+    pass
+
+
+def main():
+
+    args = menu()
     db = args.dbpath
     ip = args.address
 
     print('\nDB PATH: ' + db)
     print('IP: ' + ip + '\n')
 
-    if args.city:
-        ci = city(db, ip)
-        print(ci)
-    if args.country:
-        co = country(db, ip)
-        print(co)
-    if args.country_code:
-        cc = country_code(db, ip)
-        print(cc)
-    # if args.domain: # REQUIRES PAID DB
-    #     d = domain(db, ip)
-    #     print(d)
-    # if args.isp: # REQUIRES PAID DB
-    #     i = isp(db, ip)
-    #     print(i)
-    if args.latitude:
-        la = lat(db, ip)
-        print(la)
-    if args.longitude:
-        lo = lon(db, ip)
-        print(lo)
-    if args.postal_code:
-        p = postal(db, ip)
-        print(p)
-    # if args.readme:
-    #     readme()
-    if len(argv) <= 3:
-        ll = lat_lon(db, ip)
-        print(ll)
+    results = build_results_dict(args, db, ip)
+
+    print(results)
 
 
 if __name__ == '__main__':
