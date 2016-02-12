@@ -12,4 +12,4 @@ Install Dependencies (geo.py)
 
 Install Dependencied (geo2.py)
 ------------------------------------------------------------------
-1. **pip3 install maxminddb
+1. **pip3 install maxminddb**
