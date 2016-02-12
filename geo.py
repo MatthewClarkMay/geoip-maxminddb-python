@@ -10,7 +10,6 @@ from collections import OrderedDict
 from sys import argv, exit
 from textwrap import dedent
 import geoip2.database
-# import maxminddb
 
 
 def build_results_dict(args, db, ip):
@@ -107,12 +106,12 @@ def read_and_respond(db, ip, query):
         reader.close()
         return result
     except FileNotFoundError:
-        print('DB not found\n')
+        print('DB not found')
         print('SHUTTING DOWN')
         exit()
         pass
     except ValueError:
-        print('Invalid IP address\n')
+        print('Invalid IP address')
         print('SHUTTING DOWN')
         exit()
     except TypeError:
@@ -123,11 +122,11 @@ def read_and_respond(db, ip, query):
             reader.close()
             return result
         except ValueError:
-            print('Invalid IP address\n')
+            print('Invalid IP address')
             print('SHUTTING DOWN')
             exit()
         except TypeError:
-            print('You did not provide a compatible database.\n')
+            print('You did not provide a compatible database.')
             print('SHUTTING DOWN')
             exit()
 
