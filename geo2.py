@@ -9,11 +9,30 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from collections import OrderedDict
 from sys import argv, exit
 from textwrap import dedent
+import json
 import maxminddb
 
 
-def build_results_dict(args, db_contents):
-    results = {}
+# builds full dict for json dump
+def build_full_dict(db_contents):
+    selected = {}
+    selected['city'] = db_contents['city']['names']['en']
+    selected['continent'] = db_contents['continent']['names']['en']
+    selected['continent_code'] = db_contents['continent']['code']
+    selected['country'] = db_contents['country']['names']['en']
+    selected['country_code'] = db_contents['country']['iso_code']
+    selected['latitude/longitude'] = [db_contents['location']['latitude'],
+                                    db_contents['location']['longitude']]
+    selected['latitude'] = db_contents['location']['latitude']
+    selected['longitude'] = db_contents['location']['longitude']
+    selected['metro_code'] = db_contents['location']['metro_code']
+    selected['postal_code'] = db_contents['postal']['code']
+    return selected
+
+
+# parse command line arguments and build dictionary of results
+def build_selected_dict(args, db_contents):
+    selected = {}
     if args.all_fields:
         args.city = True
         args.continent = True
@@ -25,40 +44,41 @@ def build_results_dict(args, db_contents):
         args.postal_code = True
         args.time_zone = True
     if args.city:
-        results['city'] = db_contents['city']['names']['en']
+        selected['city'] = db_contents['city']['names']['en']
     if args.continent:
-        results['continent'] = db_contents['continent']['names']['en']
+        selected['continent'] = db_contents['continent']['names']['en']
     if args.continent_code:
-        results['continent_code'] = db_contents['continent']['code']
+        selected['continent_code'] = db_contents['continent']['code']
     if args.country:
-        results['country'] = db_contents['country']['names']['en']
+        selected['country'] = db_contents['country']['names']['en']
     if args.country_code:
-        results['country_code'] = db_contents['country']['iso_code']
+        selected['country_code'] = db_contents['country']['iso_code']
     if args.lat_lon:
-        results['latitude/longitude'] = [db_contents['location']['latitude'],
+        selected['latitude/longitude'] = [db_contents['location']['latitude'],
                                         db_contents['location']['longitude']]
     if args.latitude:
-        results['latitude'] = db_contents['location']['latitude']
+        selected['latitude'] = db_contents['location']['latitude']
     if args.longitude:
-        results['longitude'] = db_contents['location']['longitude']
+        selected['longitude'] = db_contents['location']['longitude']
     if args.metro_code:
-        results['metro_code'] = db_contents['location']['metro_code']
+        selected['metro_code'] = db_contents['location']['metro_code']
     if args.postal_code:
-        results['postal_code'] = db_contents['postal']['code']
+        selected['postal_code'] = db_contents['postal']['code']
     # if args.readme:
     #     readme()
     if args.time_zone:
-        results['time_zone'] = db_contents['location']['time_zone']
+        selected['time_zone'] = db_contents['location']['time_zone']
     if len(argv) <= 3:
-        results['latitude/longitude'] = [db_contents['location']['latitude'],
+        selected['latitude/longitude'] = [db_contents['location']['latitude'],
                                         db_contents['location']['longitude']]
-    return results
+    return selected
 
 
-def format_and_print_results(results):
-    ordered_results = OrderedDict(sorted(results.items()))
-    for key in ordered_results:
-        print('{}: {}'.format(key, results[key]))
+# format and print selected output
+def format_and_print_selected(selected_dict):
+    ordered_dict = OrderedDict(sorted(selected_dict.items()))
+    for key in ordered_dict:
+        print('{}: {}'.format(key, selected_dict[key]))
 
 
 def menu():
@@ -76,35 +96,21 @@ def menu():
 
                     Default output with no optional arguments passed: [latitude, longitude]'''))
 
-    # DB argument
+    # define command line arguments
     parser.add_argument('dbpath', metavar='db', type=str, help='Absolute path of MaxMind DB (required)')
-    # IP argument
     parser.add_argument('address', metavar='ip', type=str, help='IPv4 address you wish to locate (required)')
-    # all option
     parser.add_argument('-a', action='store_true', dest='all_fields', help='all')
-    # city option
     parser.add_argument('-ci', action='store_true', dest='city', help='city')
-    # continent name option
     parser.add_argument('-cont', action='store_true', dest='continent', help='continent name')
-    # continent code option
     parser.add_argument('-contc', action='store_true', dest='continent_code', help='continent code')
-    # country code option
     parser.add_argument('-countc', action='store_true', dest='country_code', help='country code')
-    # country option
     parser.add_argument('-count', action='store_true', dest='country', help='country')
-    # latitude option
     parser.add_argument('-la', action='store_true', dest='latitude', help='latitude')
-    # latitude/longitude option
     parser.add_argument('-lalo', action='store_true', dest='lat_lon', help='[latitude, longitude]')
-    # longitude option
     parser.add_argument('-lo', action='store_true', dest='longitude', help='longitude')
-    # metro_code option
     parser.add_argument('-m', action='store_true', dest='metro_code', help='metro code')
-    # postal code option
     parser.add_argument('-p', action='store_true', dest='postal_code', help='postal code')
-    # README option
     # parser.add_argument('-r', action='store_true', dest='readme', help='View README')
-    # time zone option
     parser.add_argument('-tz', action='store_true', dest='time_zone', help='time zone')
 
     # parse arguments/options
@@ -112,9 +118,9 @@ def menu():
     return args
 
 
-def parse_maxminddb(db, ip):
+def parse_maxminddb(db_path, ip):
     try:
-        reader = maxminddb.open_database(db)
+        reader = maxminddb.open_database(db_path)
         response = reader.get(ip)
         reader.close()
         return response
@@ -123,13 +129,20 @@ def parse_maxminddb(db, ip):
         print('SHUTTING DOWN')
         exit()
     except ValueError:
-        print('Invalid IP address')
-        print('SHUTTING DOWN')
-        exit()
+        return False
 
 
 def readme(): # print readme contents
     pass
+
+
+def json_dump(db_path, ip):
+    db_contents = parse_maxminddb(db_path, ip)
+    if not db_contents:
+        return False
+    full_dict = build_full_dict(db_contents)
+    json_data = json.dumps(full_dict)
+    return json_data
 
 
 def main():
@@ -139,12 +152,18 @@ def main():
     ip = args.address
 
     db_contents = parse_maxminddb(db_path, ip)
-    selected_db_contents = build_results_dict(args, db_contents)
+
+    if not db_contents:
+        print('Invalid IP address')
+        print('SHUTTING DOWN')
+        exit()
+
+    selected_db_contents = build_selected_dict(args, db_contents)
 
     print('\nDB: ' + db_path)
     print('IP: ' + ip + '\n')
 
-    format_and_print_results(selected_db_contents)
+    format_and_print_selected(selected_db_contents)
 
 
 if __name__ == '__main__':
