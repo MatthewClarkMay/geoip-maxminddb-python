@@ -10,6 +10,6 @@ Install Dependencies (geo.py)
 ------------------------------------------------------------------
 1. **pip3 install GeoIP2**
 
-Install Dependencied (geo2.py)
+Install Dependencies (geo2.py)
 ------------------------------------------------------------------
 1. **pip3 install maxminddb**
